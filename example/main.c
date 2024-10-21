@@ -36,7 +36,7 @@ int main(void)
     int log_uart_id = 0;
     int log_file_id = 0;
 
-    xf_log_set_time_func(get_current_time_ms);
+    xf_log_set_time_func(get_current_time_ms); // 设置时间戳打印函数(可选)
 
     log_uart_id = xf_log_register_obj(uart_write, NULL);
     xf_log_set_info_level(log_uart_id, XF_LOG_LVL_ERROR);
@@ -68,6 +68,8 @@ int main(void)
     XF_LOGI(TAG, "Hello, %s, date: %d, pi: %f!\n", name, date, pi);
     XF_LOGD(TAG, "Hello, %s, date: %d, pi: %f!\n", name, date, pi);
     XF_LOGV(TAG, "Hello, %s, date: %d, pi: %f!\n", name, date, pi);
+
+    xf_log_printf("Hello, %s, date: %d, pi: %f!\n", name, date, pi);
 
     return 0;
 }

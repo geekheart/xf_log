@@ -82,6 +82,7 @@ typedef struct _xf_log_obj_t {
 
 /* ==================== [Static Prototypes] ================================= */
 
+static size_t xf_log_vprintf(xf_log_out_t log_out, void *arg, const char *format, va_list va);
 static size_t xf_log_color_format(int log_obj_id, uint8_t level, const char *tag, const char *file, uint32_t line,
                                   const char *func, const char *fmt, va_list va);
 
@@ -236,7 +237,23 @@ size_t xf_log(uint8_t level, const char *tag, const char *file, uint32_t line, c
             }
         }
 #endif
-        len += xf_log_color_format(i, level, tag, file, line, func, fmt, args);
+        len = xf_log_color_format(i, level, tag, file, line, func, fmt, args);
+    }
+    va_end(args);
+
+    return len;
+}
+
+size_t xf_log_printf(const char *format, ...)
+{
+    size_t len = 0;
+    va_list args;
+    va_start(args, format);
+    for (size_t i = 0; i < XF_LOG_OBJ_NUM; i++) {
+        if (s_log_obj[i].out_func == NULL) {
+            continue;
+        }
+        len = xf_log_vprintf(s_log_obj[i].out_func, s_log_obj[i].user_args, format, args);
     }
     va_end(args);
 
@@ -429,7 +446,7 @@ static size_t xf_log_vprintf(xf_log_out_t log_out, void *arg, const char *format
     return total_length;
 }
 
-static size_t xf_log_printf(xf_log_out_t log_out, void *arg, const char *format, ...)
+static size_t xf_log_printf_out(xf_log_out_t log_out, void *arg, const char *format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -453,7 +470,7 @@ static size_t xf_log_color_format(int log_obj_id, uint8_t level, const char *tag
 #endif
         if (s_lvl_to_color[level] != XF_LOG_COLOR_NULL) {
             /* \033[0;3%cm: 重置样式并设置前景色 */
-            len += xf_log_printf(out_func, user_args, PL_CSI_START "0;3" "%cm", s_lvl_to_color[level]);
+            len += xf_log_printf_out(out_func, user_args, PL_CSI_START "0;3" "%cm", s_lvl_to_color[level]);
         }
 #if XF_LOG_FILTER_IS_ENABLE
     }
@@ -462,18 +479,18 @@ static size_t xf_log_color_format(int log_obj_id, uint8_t level, const char *tag
 
     // 添加时间戳打印
     if (s_log_time_func) {
-        len += xf_log_printf(out_func, user_args, "%c (%lu)-%s", s_lvl_to_prompt[level], s_log_time_func(), tag);
+        len += xf_log_printf_out(out_func, user_args, "%c (%lu)-%s", s_lvl_to_prompt[level], s_log_time_func(), tag);
     } else {
-        len += xf_log_printf(out_func, user_args, "%c %s", s_lvl_to_prompt[level], tag);
+        len += xf_log_printf_out(out_func, user_args, "%c %s", s_lvl_to_prompt[level], tag);
     }
 
     // 打印信息
     if (level <= s_log_obj[log_obj_id].info_level) {
-        len += xf_log_printf(out_func, user_args, "[%s:%lu(%s)]", file, line, func);
+        len += xf_log_printf_out(out_func, user_args, "[%s:%lu(%s)]", file, line, func);
     }
 
     // 用户日志打印
-    len += xf_log_printf(out_func, user_args, ": ");
+    len += xf_log_printf_out(out_func, user_args, ": ");
     len += xf_log_vprintf(out_func, user_args, fmt, va);
 
 #if XF_LOG_COLORS_IS_ENABLE
@@ -483,7 +500,7 @@ static size_t xf_log_color_format(int log_obj_id, uint8_t level, const char *tag
 #endif
         /* 清除 CSI 格式 */
         if (s_lvl_to_color[level] != XF_LOG_COLOR_NULL) {
-            len += xf_log_printf(out_func, user_args, PL_CSI_END);
+            len += xf_log_printf_out(out_func, user_args, PL_CSI_END);
         }
 #if XF_LOG_FILTER_IS_ENABLE
     }
