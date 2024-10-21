@@ -419,7 +419,6 @@ static size_t xf_log_vprintf(xf_log_out_t log_out, void *arg, const char *format
             // 格式化字符串并输出;
             va_copy(args_copy, va);
             find_args_from_index(&args_copy, index);
-            index += used_index;
             // 获取完整格式化的长度
             int formatted_len = xf_log_vsprintf(format_buffer, MIN_FORMAT_BUFFER_SIZE, format_flag, args_copy);
             va_end(args_copy);
@@ -440,6 +439,7 @@ static size_t xf_log_vprintf(xf_log_out_t log_out, void *arg, const char *format
                 }
                 total_length += total_written;
             }
+            index += used_index;
         }
     }
 
